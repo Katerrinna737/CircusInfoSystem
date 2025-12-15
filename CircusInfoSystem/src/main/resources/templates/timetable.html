@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Расписание мероприятий</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqul2QvZ6jiW3" crossorigin="anonymous">
+    <!--библиотека-->
+    <!--тут рамки белые убрала-->
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+        }
+        .bg-image {
+            background-image: url('/background.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            height: 100vh;
+            width: 100%;
+            overflow: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .form-container {
+            background-color: rgba(255, 255, 255, 0.3);
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            max-width: 900px;
+        }
+
+        /* стиль таблицы расписания */
+        #timetableTable th,
+        #timetableTable td {
+            text-align: center; /* по центру */
+            vertical-align: middle; /* вертикальное выравнивание по центру */
+            padding: 0.75rem; /* отступы */
+        }
+    </style>
+</head>
+<body>
+<div class="bg-image">
+    <div class="container">
+        <div class="form-container">
+            <blockquote class="blockquote text-center"><h1>Расписание мероприятий</h1></blockquote>
+            <div class="row">
+                <div class="col-md-8 offset-md-4">
+                    <h4>Поиск мероприятия по любому критерию:</h4>
+                    <form th:action="@{/timetable}" method="get">
+                        <input type="text" name="keyword" id="keyword" size="35" th:value="${keyword}" required/>
+                        <input type="submit" class="btn btn-success btn-sm" value="Поиск"/>
+                        <input type="button" class="btn btn-warning btn-sm" value="Очистить" id="btnClear"
+                               onclick="clearSearch()"/>
+                    </form>
+                </div>
+            </div>
+            <table id="timetableTable" class="table table-striped table-hover">
+                <thead>
+                <tr>
+                    <th scope="col">
+                        <a th:href="@{/timetable(sortField='date', sortDir=${sortDir == 'asc' && sortField == 'date' ? 'desc' : 'asc'}, keyword=${keyword})}"
+                           class="text-white text-decoration-none">
+                            Дата
+                            <span th:if="${sortField == 'date'}" th:text="${sortDir == 'asc' ? '↑' : '↓'}"></span>
+                        </a>
+                    </th>
+                    <th scope="col">
+                        <a th:href="@{/timetable(sortField='time', sortDir=${sortDir == 'asc' && sortField == 'time' ? 'desc' : 'asc'}, keyword=${keyword})}"
+                           class="text-white text-decoration-none">
+                            Время
+                            <span th:if="${sortField == 'time'}" th:text="${sortDir == 'asc' ? '↑' : '↓'}"></span>
+                        </a>
+                    </th>
+                    <th scope="col">
+                        <a th:href="@{/timetable(sortField='duration', sortDir=${sortDir == 'asc' && sortField == 'duration' ? 'desc' : 'asc'}, keyword=${keyword})}"
+                           class="text-white text-decoration-none">
+                            Длительность (мин)
+                            <span th:if="${sortField == 'duration'}" th:text="${sortDir == 'asc' ? '↑' : '↓'}"></span>
+                        </a>
+                    </th>
+                    <th scope="col">
+                        <a th:href="@{/timetable(sortField='cost', sortDir=${sortDir == 'asc' && sortField == 'cost' ? 'desc' : 'asc'}, keyword=${keyword})}"
+                           class="text-white text-decoration-none">
+                            Стоимость (руб)
+                            <span th:if="${sortField == 'cost'}" th:text="${sortDir == 'asc' ? '↑' : '↓'}"></span>
+                        </a>
+                    </th>
+                    <th scope="col" sec:authorize="hasRole('ADMIN')">Действия</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="timetable : ${timetables}">
+                    <td th:text="${#temporals.format(timetable.date, 'dd.MM.yyyy')}"></td>
+                    <td th:text="${#temporals.format(timetable.time, 'HH:mm')}"></td>
+                    <td th:text="${timetable.duration}"></td>
+                    <td th:text="${#numbers.formatDecimal(timetable.cost, 0, 2)}"></td>
+                    <td sec:authorize="hasRole('ADMIN')">
+                        <a th:href="@{/timetable/edit/{id}(id=${timetable.id})}">
+                            <button type="button" class="btn btn-warning btn-sm">Редактировать</button>
+                        </a>
+                        <a th:href="@{/timetable/delete/{id}(id=${timetable.id})}"
+                           onclick="return confirm('Вы уверены?')">
+                            <button type="button" class="btn btn-danger btn-sm">Удалить</button>
+                        </a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <blockquote class="blockquote text-center" sec:authorize="hasRole('ADMIN')">
+                <a href="/timetable/add">
+                    <button type="button" class="btn btn-outline-light">
+                        Добавить мероприятие
+                    </button>
+                </a>
+            </blockquote>
+            <blockquote class="blockquote text-center">
+                <a href="/">
+                    <button type="button" class="btn btn-outline-light">
+                        На главную
+                    </button>
+                </a>
+            </blockquote>
+        </div>
+    </div>
+    <script type="text/javascript">
+        function clearSearch() {
+            window.location = "/timetable";
+        }
+    </script>
+</body>
+</html>
